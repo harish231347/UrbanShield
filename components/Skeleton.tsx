@@ -3,16 +3,18 @@ import { Animated, StyleSheet, View } from 'react-native';
 import { Colors, Radius } from '@/lib/theme';
 
 export function Skeleton({ width, height, style }: { width?: number | string; height?: number; style?: any }) {
-  const opacity = React.useRef(new Animated.Value(0.35)).current;
+  const shimmer = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.35, duration: 700, useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 0, duration: 800, useNativeDriver: true }),
       ])
     ).start();
-  }, [opacity]);
+  }, [shimmer]);
+
+  const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
 
   return (
     <Animated.View

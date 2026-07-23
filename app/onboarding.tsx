@@ -1,11 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, ScrollView, StyleSheet, View } from 'react-native';
+import { Animated, Dimensions, Easing, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Shield, MapPin, Bell } from 'lucide-react-native';
 import { Button } from '@/components/Button';
-import { Colors, Radius, Spacing} from '@/lib/theme';
-import { Typography } from '@/components/Typography';
+import { FloatingOrbs } from '@/components/AnimatedBackground';
+import { Colors, Radius, Spacing } from '@/lib/theme';
+import { Typography as T } from '@/components/Typography';
 
 const slides = [
   {
@@ -13,18 +14,21 @@ const slides = [
     title: 'Report Issues Instantly',
     body: 'Citizens can report potholes, street lights, garbage, water leaks and more in under a minute.',
     colors: [Colors.primary[500], Colors.primary[700]] as [string, string],
+    accent: Colors.primary[300],
   },
   {
     icon: MapPin,
     title: 'Smart City Mapping',
     body: 'Track nearby issues and ward-level risk on a live mock city map with priority intelligence.',
     colors: [Colors.accent[500], Colors.primary[600]] as [string, string],
+    accent: Colors.accent[400],
   },
   {
     icon: Bell,
     title: 'Transparent Governance',
     body: 'Get real-time updates, officer responses, and resolution status for every complaint you file.',
     colors: [Colors.warning[500], Colors.danger[500]] as [string, string],
+    accent: Colors.warning[400],
   },
 ];
 
@@ -33,17 +37,31 @@ const { width } = Dimensions.get('window');
 export default function Onboarding() {
   const [idx, setIdx] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
+  const float = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(float, { toValue: 1, duration: 2500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(float, { toValue: 0, duration: 2500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    ).start();
+  }, [float]);
+
+  const floatY = float.interpolate({ inputRange: [0, 1], outputRange: [0, -12] });
 
   const handleDone = () => router.replace('/login');
-
-  const next = () => {
-    if (idx < slides.length - 1) setIdx(idx + 1);
-    else handleDone();
-  };
+  const next = () => (idx < slides.length - 1 ? setIdx(idx + 1) : handleDone());
 
   return (
     <View style={styles.bg}>
-      <ScrollView
+      <View style={styles.topBar}>
+        {idx < slides.length - 1 && (
+          <T.bodyS style={{ color: Colors.neutral[400] }} onPress={handleDone}>Skip</T.bodyS>
+        )}
+      </View>
+
+      <Animated.ScrollView
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -52,17 +70,26 @@ export default function Onboarding() {
         onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.x / width))}>
         {slides.map((s, i) => {
           const Icon = s.icon;
+          const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
+          const scale = scrollX.interpolate({ inputRange, outputRange: [0.6, 1, 0.6], extrapolate: 'clamp' });
+          const opacity = scrollX.interpolate({ inputRange, outputRange: [0.3, 1, 0.3], extrapolate: 'clamp' });
+          const translateX = scrollX.interpolate({ inputRange, outputRange: [width * 0.25, 0, -width * 0.25], extrapolate: 'clamp' });
+
           return (
             <View key={i} style={styles.slide}>
-              <LinearGradient colors={s.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.iconWrap}>
-                <Icon color={Colors.neutral[0]} size={56} strokeWidth={1.8} />
-              </LinearGradient>
-              <Typography.h1 style={styles.title}>{s.title}</Typography.h1>
-              <Typography.body style={styles.body}>{s.body}</Typography.body>
+              <Animated.View style={{ transform: [{ scale }, { translateX }, { translateY: floatY }], opacity }}>
+                <LinearGradient colors={s.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.iconWrap}>
+                  <Icon color={Colors.neutral[0]} size={60} strokeWidth={1.6} />
+                </LinearGradient>
+              </Animated.View>
+              <Animated.View style={{ opacity, paddingHorizontal: Spacing.xxxl }}>
+                <T.h1 style={styles.title}>{s.title}</T.h1>
+                <T.body style={styles.body}>{s.body}</T.body>
+              </Animated.View>
             </View>
           );
         })}
-      </ScrollView>
+      </Animated.ScrollView>
 
       <View style={styles.footer}>
         <View style={styles.dots}>
@@ -72,19 +99,12 @@ export default function Onboarding() {
               style={[
                 styles.dot,
                 { backgroundColor: i === idx ? Colors.primary[500] : Colors.neutral[300] },
-                { width: i === idx ? 24 : 8 },
+                { width: i === idx ? 28 : 8 },
               ]}
             />
           ))}
         </View>
-        <View style={styles.actions}>
-          {idx < slides.length - 1 ? (
-            <Button label="Skip" variant="ghost" onPress={handleDone} />
-          ) : (
-            <View />
-          )}
-          <Button label={idx === slides.length - 1 ? 'Get Started' : 'Next'} onPress={next} />
-        </View>
+        <Button label={idx === slides.length - 1 ? 'Get Started' : 'Next'} onPress={next} style={{ minWidth: 180 }} />
       </View>
     </View>
   );
@@ -92,12 +112,12 @@ export default function Onboarding() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: Colors.neutral[50] },
+  topBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxxl },
   slide: { width, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxxl },
-  iconWrap: { width: 130, height: 130, borderRadius: Radius.xl, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xxxl },
+  iconWrap: { width: 140, height: 140, borderRadius: Radius.xl, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xxxl },
   title: { textAlign: 'center', color: Colors.neutral[900] },
   body: { textAlign: 'center', color: Colors.neutral[500], marginTop: Spacing.base, paddingHorizontal: Spacing.xl },
-  footer: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxxl, paddingTop: Spacing.lg },
-  dots: { flexDirection: 'row', gap: Spacing.sm, justifyContent: 'center', marginBottom: Spacing.xl },
+  footer: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxxl, paddingTop: Spacing.lg, alignItems: 'center', gap: Spacing.xl },
+  dots: { flexDirection: 'row', gap: Spacing.sm, justifyContent: 'center' },
   dot: { height: 8, borderRadius: 4 },
-  actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

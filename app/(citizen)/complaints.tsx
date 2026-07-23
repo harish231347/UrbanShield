@@ -1,65 +1,72 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { Animated, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { FileText, MapPin, TrendingUp } from 'lucide-react-native';
 import { Card } from '@/components/Card';
 import { StatusBadge, RiskBadge } from '@/components/Badges';
 import { citizenComplaints } from '@/lib/data';
-import { Colors, Radius, Spacing} from '@/lib/theme';
-import { Typography } from '@/components/Typography';
+import { Colors, Radius, Spacing } from '@/lib/theme';
+import { Typography as T } from '@/components/Typography';
 
 const filters = ['All', 'Pending', 'In Progress', 'Resolved'] as const;
 
 export default function MyComplaints() {
   const [filter, setFilter] = useState<(typeof filters)[number]>('All');
+  const fade = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fade, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+  }, [fade]);
 
   const list = citizenComplaints.filter((c) => (filter === 'All' ? true : c.status === filter));
 
   return (
     <View style={styles.screen}>
       <LinearGradient colors={[Colors.primary[700], Colors.primary[900]]} style={styles.header}>
-        <Typography.h2 style={{ color: Colors.neutral[0] }}>My Complaints</Typography.h2>
-        <Typography.bodyS style={{ color: Colors.primary[200] }}>{citizenComplaints.length} total reports</Typography.bodyS>
+        <T.h2 style={{ color: Colors.neutral[0] }}>My Complaints</T.h2>
+        <T.bodyS style={{ color: Colors.primary[200] }}>{citizenComplaints.length} total reports</T.bodyS>
       </LinearGradient>
 
       <View style={styles.filterRow}>
         {filters.map((f) => (
           <View key={f} style={[styles.filterChip, filter === f && styles.filterActive]}>
-            <Typography.label style={{ color: filter === f ? Colors.neutral[0] : Colors.neutral[500] }}>{f}</Typography.label>
+            <T.label style={{ color: filter === f ? Colors.neutral[0] : Colors.neutral[500] }}>{f}</T.label>
           </View>
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {list.map((c, i) => (
-          <Card key={c.id} delay={i * 70} onPress={() => router.push(`/complaint/${c.id}`)} style={styles.card}>
-            <View style={styles.top}>
-              <View style={styles.left}>
-                <View style={styles.iconBox}>
-                  <FileText color={Colors.primary[600]} size={20} />
+      <Animated.View style={{ opacity: fade, flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {list.map((c, i) => (
+            <Card key={c.id} delay={i * 70} onPress={() => router.push(`/complaint/${c.id}`)} style={styles.card}>
+              <View style={styles.top}>
+                <View style={styles.left}>
+                  <View style={styles.iconBox}>
+                    <FileText color={Colors.primary[600]} size={20} />
+                  </View>
+                  <View>
+                    <T.title numberOfLines={1}>{c.title}</T.title>
+                    <T.bodyS style={{ color: Colors.neutral[500] }}>{c.id} · {c.date}</T.bodyS>
+                  </View>
                 </View>
-                <View>
-                  <Typography.title numberOfLines={1}>{c.title}</Typography.title>
-                  <Typography.bodyS style={{ color: Colors.neutral[500] }}>{c.id} · {c.date}</Typography.bodyS>
+                <StatusBadge status={c.status} />
+              </View>
+              <View style={styles.meta}>
+                <MapPin color={Colors.neutral[400]} size={14} />
+                <T.bodyS style={{ color: Colors.neutral[500] }}>{c.ward}</T.bodyS>
+              </View>
+              <View style={styles.footer}>
+                <RiskBadge level={c.priority} />
+                <View style={styles.upvote}>
+                  <TrendingUp color={Colors.primary[500]} size={14} />
+                  <T.label style={{ color: Colors.primary[600] }}>{c.upvotes}</T.label>
                 </View>
               </View>
-              <StatusBadge status={c.status} />
-            </View>
-            <View style={styles.meta}>
-              <MapPin color={Colors.neutral[400]} size={14} />
-              <Typography.bodyS style={{ color: Colors.neutral[500] }}>{c.ward}</Typography.bodyS>
-            </View>
-            <View style={styles.footer}>
-              <RiskBadge level={c.priority} />
-              <View style={styles.upvote}>
-                <TrendingUp color={Colors.primary[500]} size={14} />
-                <Typography.label style={{ color: Colors.primary[600] }}>{c.upvotes}</Typography.label>
-              </View>
-            </View>
-          </Card>
-        ))}
-      </ScrollView>
+            </Card>
+          ))}
+        </ScrollView>
+      </Animated.View>
     </View>
   );
 }

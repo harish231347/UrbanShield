@@ -1,10 +1,10 @@
-import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CheckCircle2, AlertCircle, Bell, Users } from 'lucide-react-native';
 import { citizenNotifications } from '@/lib/data';
-import { Colors, Radius, Spacing} from '@/lib/theme';
-import { Typography } from '@/components/Typography';
+import { Colors, Radius, Spacing } from '@/lib/theme';
+import { Typography as T } from '@/components/Typography';
 
 const typeConfig: Record<string, { icon: any; colors: [string, string] }> = {
   progress: { icon: AlertCircle, colors: [Colors.primary[400], Colors.primary[600]] },
@@ -17,25 +17,33 @@ export default function Notifications() {
   return (
     <View style={styles.screen}>
       <LinearGradient colors={[Colors.primary[700], Colors.primary[900]]} style={styles.header}>
-        <Typography.h2 style={{ color: Colors.neutral[0] }}>Notifications</Typography.h2>
-        <Typography.bodyS style={{ color: Colors.primary[200] }}>{citizenNotifications.length} updates</Typography.bodyS>
+        <T.h2 style={{ color: Colors.neutral[0] }}>Notifications</T.h2>
+        <T.bodyS style={{ color: Colors.primary[200] }}>{citizenNotifications.length} updates</T.bodyS>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {citizenNotifications.map((n, i) => {
           const cfg = typeConfig[n.type];
           const Icon = cfg.icon;
+          const slide = useRef(new Animated.Value(20)).current;
+          const opacity = useRef(new Animated.Value(0)).current;
+          useEffect(() => {
+            Animated.parallel([
+              Animated.timing(opacity, { toValue: 1, duration: 400, delay: i * 80, useNativeDriver: true }),
+              Animated.timing(slide, { toValue: 0, duration: 400, delay: i * 80, useNativeDriver: true }),
+            ]).start();
+          }, [i, opacity, slide]);
           return (
-            <View key={n.id} style={[styles.item, { marginTop: i === 0 ? 0 : Spacing.base }]}>
+            <Animated.View key={n.id} style={[styles.item, { opacity, transform: [{ translateY: slide }], marginTop: i === 0 ? 0 : Spacing.base }]}>
               <LinearGradient colors={cfg.colors} style={styles.icon}>
                 <Icon color={Colors.neutral[0]} size={18} />
               </LinearGradient>
               <View style={{ flex: 1 }}>
-                <Typography.title numberOfLines={2}>{n.title}</Typography.title>
-                <Typography.bodyS style={{ color: Colors.neutral[500], marginTop: 2 }}>{n.body}</Typography.bodyS>
-                <Typography.caption style={{ color: Colors.neutral[400], marginTop: 4 }}>{n.time}</Typography.caption>
+                <T.title numberOfLines={2}>{n.title}</T.title>
+                <T.bodyS style={{ color: Colors.neutral[500], marginTop: 2 }}>{n.body}</T.bodyS>
+                <T.caption style={{ color: Colors.neutral[400], marginTop: 4 }}>{n.time}</T.caption>
               </View>
-            </View>
+            </Animated.View>
           );
         })}
       </ScrollView>

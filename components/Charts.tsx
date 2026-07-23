@@ -1,12 +1,20 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Radius, Spacing} from '@/lib/theme';
-import { Typography } from '@/components/Typography';
+import React, { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, View } from 'react-native';
+import { Colors, Radius, Spacing } from '@/lib/theme';
+import { Typography as T } from '@/components/Typography';
 import { weeklyTrend } from '@/lib/data';
 
 export function BarChart() {
   const max = Math.max(...weeklyTrend.map((d) => d.reports));
+  const anim = useRef(weeklyTrend.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    const animations = anim.map((a, i) =>
+      Animated.timing(a, { toValue: 1, duration: 700, delay: i * 80, useNativeDriver: false })
+    );
+    Animated.parallel(animations).start();
+  }, [anim]);
+
   return (
     <View style={styles.wrap}>
       {weeklyTrend.map((d, i) => {
@@ -15,10 +23,10 @@ export function BarChart() {
         return (
           <View key={i} style={styles.col}>
             <View style={styles.bars}>
-              <View style={[styles.bar, { height: h, backgroundColor: Colors.primary[500] }]} />
-              <View style={[styles.bar, { height: h2, backgroundColor: Colors.accent[500] }]} />
+              <Animated.View style={[styles.bar, { backgroundColor: Colors.primary[500], height: anim[i].interpolate({ inputRange: [0, 1], outputRange: [0, h] }) }]} />
+              <Animated.View style={[styles.bar, { backgroundColor: Colors.accent[500], height: anim[i].interpolate({ inputRange: [0, 1], outputRange: [0, h2] }) }]} />
             </View>
-            <Typography.caption style={styles.label}>{d.day}</Typography.caption>
+            <T.caption style={styles.label}>{d.day}</T.caption>
           </View>
         );
       })}
@@ -43,13 +51,21 @@ export function DonutChart() {
     { label: 'Water', value: 14, color: '#5AA3FF' },
     { label: 'Other', value: 12, color: '#94A3B8' },
   ];
-  let acc = 0;
+  const spin = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(spin, { toValue: 1, duration: 900, useNativeDriver: true }).start();
+  }, [spin]);
+
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
   return (
     <View style={styles2.wrap}>
-      <View style={styles2.donut}>
+      <Animated.View style={[styles2.donut, { transform: [{ rotate }] }]}>
         {data.map((d, i) => {
           const pct = (d.value / total) * 360;
-          const seg = (
+          const startAngle = data.slice(0, i).reduce((s, x) => s + (x.value / total) * 360, 0);
+          return (
             <View
               key={i}
               style={{
@@ -59,25 +75,22 @@ export function DonutChart() {
                 borderRadius: 70,
                 borderWidth: 16,
                 borderColor: d.color,
-                borderStyle: 'solid',
-                transform: [{ rotate: `${acc}deg` }],
+                transform: [{ rotate: `${startAngle}deg` }],
                 opacity: 0.9,
               }}
             />
           );
-          acc += pct;
-          return seg;
         })}
         <View style={styles2.hole}>
-          <Typography.h3>{total}</Typography.h3>
-          <Typography.caption style={{ color: Colors.neutral[500] }}>Total</Typography.caption>
+          <T.h3>{total}</T.h3>
+          <T.caption style={{ color: Colors.neutral[500] }}>Total</T.caption>
         </View>
-      </View>
+      </Animated.View>
       <View style={styles2.legend}>
         {data.map((d, i) => (
           <View key={i} style={styles2.legItem}>
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: d.color }} />
-            <Typography.bodyS style={{ color: Colors.neutral[600] }}>{d.label}</Typography.bodyS>
+            <T.bodyS style={{ color: Colors.neutral[600] }}>{d.label}</T.bodyS>
           </View>
         ))}
       </View>

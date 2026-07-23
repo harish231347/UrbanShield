@@ -1,81 +1,94 @@
 import { useLocalSearchParams } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, ScrollView, StyleSheet, View, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ArrowLeft, MapPin, Calendar, User, TrendingUp, MessageSquare } from 'lucide-react-native';
 import { Card } from '@/components/Card';
 import { StatusBadge, RiskBadge } from '@/components/Badges';
 import { Button } from '@/components/Button';
+import { FloatingOrbs } from '@/components/AnimatedBackground';
 import { citizenComplaints, officerComplaints } from '@/lib/data';
-import { Colors, Radius, Spacing} from '@/lib/theme';
-import { Typography } from '@/components/Typography';
+import { Colors, Radius, Spacing } from '@/lib/theme';
+import { Typography as T } from '@/components/Typography';
 
 export default function ComplaintDetails() {
   const { id } = useLocalSearchParams();
   const complaint = [...citizenComplaints, ...officerComplaints].find((c) => c.id === id) ?? citizenComplaints[0];
+  const fade = useRef(new Animated.Value(0)).current;
+  const slide = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fade, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(slide, { toValue: 0, duration: 500, useNativeDriver: true }),
+    ]).start();
+  }, [fade, slide]);
 
   return (
     <View style={styles.screen}>
       <LinearGradient colors={[Colors.primary[700], Colors.primary[900]]} style={styles.header}>
+        <FloatingOrbs />
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()}>
             <ArrowLeft color={Colors.neutral[0]} size={24} />
           </TouchableOpacity>
-          <Typography.h3 style={{ color: Colors.neutral[0] }}>{complaint.id}</Typography.h3>
+          <T.h3 style={{ color: Colors.neutral[0] }}>{complaint.id}</T.h3>
           <View style={{ width: 24 }} />
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Card delay={0} style={styles.mainCard}>
-          <View style={styles.rowBetween}>
-            <Typography.h2>{complaint.title}</Typography.h2>
-            <RiskBadge level={complaint.priority} />
-          </View>
-          <View style={styles.statusRow}>
-            <StatusBadge status={complaint.status} />
-            <Typography.bodyS style={{ color: Colors.neutral[500] }}>{complaint.category}</Typography.bodyS>
-          </View>
-          <Typography.body style={{ color: Colors.neutral[600], marginTop: Spacing.base }}>{complaint.description}</Typography.body>
-        </Card>
-
-        <Card delay={100} style={styles.infoCard}>
-          <InfoRow icon={<MapPin color={Colors.primary[600]} size={18} />} label="Location" value={complaint.location} />
-          <View style={styles.sep} />
-          <InfoRow icon={<Calendar color={Colors.primary[600]} size={18} />} label="Reported" value={`${complaint.date} · ${complaint.daysOpen} days open`} />
-          {complaint.officer && (
-            <>
-              <View style={styles.sep} />
-              <InfoRow icon={<User color={Colors.primary[600]} size={18} />} label="Officer" value={complaint.officer} />
-            </>
-          )}
-          <View style={styles.sep} />
-          <InfoRow icon={<TrendingUp color={Colors.primary[600]} size={18} />} label="Community Upvotes" value={`${complaint.upvotes} citizens`} />
-        </Card>
-
-        <Typography.title style={styles.sectionLabel}>Status Updates</Typography.title>
-        <Card delay={200} style={styles.timelineCard}>
-          {complaint.updates.length > 0 ? (
-            complaint.updates.map((u, i) => (
-              <View key={i} style={styles.timelineItem}>
-                <View style={styles.timelineDot} />
-                <View style={{ flex: 1 }}>
-                  <Typography.label style={{ color: Colors.primary[600] }}>{u.date}</Typography.label>
-                  <Typography.body style={{ color: Colors.neutral[700] }}>{u.text}</Typography.body>
-                </View>
-              </View>
-            ))
-          ) : (
-            <View style={styles.emptyTimeline}>
-              <MessageSquare color={Colors.neutral[300]} size={28} />
-              <Typography.bodyS style={{ color: Colors.neutral[400] }}>No updates yet</Typography.bodyS>
+      <Animated.View style={{ opacity: fade, transform: [{ translateY: slide }], flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <Card delay={0} style={styles.mainCard}>
+            <View style={styles.rowBetween}>
+              <T.h2>{complaint.title}</T.h2>
+              <RiskBadge level={complaint.priority} />
             </View>
-          )}
-        </Card>
+            <View style={styles.statusRow}>
+              <StatusBadge status={complaint.status} />
+              <T.bodyS style={{ color: Colors.neutral[500] }}>{complaint.category}</T.bodyS>
+            </View>
+            <T.body style={{ color: Colors.neutral[600], marginTop: Spacing.base }}>{complaint.description}</T.body>
+          </Card>
 
-        <Button label="Upvote this complaint" variant="secondary" fullWidth style={{ marginTop: Spacing.lg }} />
-      </ScrollView>
+          <Card delay={100} style={styles.infoCard}>
+            <InfoRow icon={<MapPin color={Colors.primary[600]} size={18} />} label="Location" value={complaint.location} />
+            <View style={styles.sep} />
+            <InfoRow icon={<Calendar color={Colors.primary[600]} size={18} />} label="Reported" value={`${complaint.date} · ${complaint.daysOpen} days open`} />
+            {complaint.officer && (
+              <>
+                <View style={styles.sep} />
+                <InfoRow icon={<User color={Colors.primary[600]} size={18} />} label="Officer" value={complaint.officer} />
+              </>
+            )}
+            <View style={styles.sep} />
+            <InfoRow icon={<TrendingUp color={Colors.primary[600]} size={18} />} label="Community Upvotes" value={`${complaint.upvotes} citizens`} />
+          </Card>
+
+          <T.title style={styles.sectionLabel}>Status Updates</T.title>
+          <Card delay={200} style={styles.timelineCard}>
+            {complaint.updates.length > 0 ? (
+              complaint.updates.map((u, i) => (
+                <View key={i} style={styles.timelineItem}>
+                  <View style={styles.timelineDot} />
+                  <View style={{ flex: 1 }}>
+                    <T.label style={{ color: Colors.primary[600] }}>{u.date}</T.label>
+                    <T.body style={{ color: Colors.neutral[700] }}>{u.text}</T.body>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyTimeline}>
+                <MessageSquare color={Colors.neutral[300]} size={28} />
+                <T.bodyS style={{ color: Colors.neutral[400] }}>No updates yet</T.bodyS>
+              </View>
+            )}
+          </Card>
+
+          <Button label="Upvote this complaint" variant="secondary" fullWidth style={{ marginTop: Spacing.lg }} />
+        </ScrollView>
+      </Animated.View>
     </View>
   );
 }
@@ -85,8 +98,8 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
     <View style={styles.infoRow}>
       <View style={styles.infoIcon}>{icon}</View>
       <View>
-        <Typography.caption style={{ color: Colors.neutral[400] }}>{label}</Typography.caption>
-        <Typography.body style={{ color: Colors.neutral[800] }}>{value}</Typography.body>
+        <T.caption style={{ color: Colors.neutral[400] }}>{label}</T.caption>
+        <T.body style={{ color: Colors.neutral[800] }}>{value}</T.body>
       </View>
     </View>
   );
@@ -94,7 +107,7 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.neutral[50] },
-  header: { paddingTop: 56, paddingBottom: Spacing.base, paddingHorizontal: Spacing.xl },
+  header: { paddingTop: 56, paddingBottom: Spacing.base, paddingHorizontal: Spacing.xl, overflow: 'hidden' },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   content: { padding: Spacing.xl, paddingBottom: 60, gap: Spacing.base },
   mainCard: { gap: Spacing.sm },
